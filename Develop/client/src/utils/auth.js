@@ -1,8 +1,31 @@
-// use this to decode a token and get the user's information out of it
 import decode from 'jwt-decode';
+import { ApolloClient, InMemoryCache, createHttpLink } from '@apollo/client';
+import { setContext } from '@apollo/client/link/context';
 
 // create a new class to instantiate for a user
 class AuthService {
+
+  httpLink = createHttpLink({
+    uri: 'http://localhost:3001/graphql',
+  });
+
+  authLink = setContext((_, { headers }) => {
+    // get the authentication token from local storage if it exists
+    const token = this.getToken();
+    // return the headers to the context so httpLink can read them
+    return {
+      headers: {
+        ...headers,
+        authorization: token ? `Bearer ${token}` : "",
+      }
+    }
+  });
+
+  client = new ApolloClient({
+    link: this.authLink.concat(this.httpLink),
+    cache: new InMemoryCache(),
+  });
+
   // get user data
   getProfile() {
     return decode(this.getToken());
